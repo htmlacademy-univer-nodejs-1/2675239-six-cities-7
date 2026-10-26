@@ -4,18 +4,18 @@ import axios from 'axios';
 import { Application } from './application.js';
 import { container } from './container.js';
 import { TYPES } from './const/tokens.js';
-import { createReadStream, createWriteStream } from 'node:fs';
+import { createWriteStream } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { once } from 'node:events';
-import { createInterface } from 'node:readline';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import chalk from 'chalk';
 import type { OfferSeed } from './types/offer.js';
+import { OfferImportService } from './service/offer-import.service.js';
+import { ConfigService } from './config/config.service.js';
 
-const HELP_TEXT = '\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0430 \u0434\u043b\u044f \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u043a\u0438 \u0434\u0430\u043d\u043d\u044b\u0445 \u0441\u0435\u0440\u0432\u0438\u0441\u0430 \u00ab\u0428\u0435\u0441\u0442\u044c \u0433\u043e\u0440\u043e\u0434\u043e\u0432\u00bb.\n\n\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0435 \u043a\u043e\u043c\u0430\u043d\u0434\u044b:\n  --help                         \u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u044d\u0442\u0443 \u0441\u043f\u0440\u0430\u0432\u043a\u0443\n  --version                      \u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0432\u0435\u0440\u0441\u0438\u044e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f\n  --import <filepath>            \u0418\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u044f \u0438\u0437 TSV-\u0444\u0430\u0439\u043b\u0430\n  --generate <n> <filepath> <url>  \u0421\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c TSV-\u0444\u0430\u0439\u043b';
+const HELP_TEXT = '\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0430 \u0434\u043b\u044f \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u043a\u0438 \u0434\u0430\u043d\u043d\u044b\u0445 \u0441\u0435\u0440\u0432\u0438\u0441\u0430 \u00ab\u0428\u0435\u0441\u0442\u044c \u0433\u043e\u0440\u043e\u0434\u043e\u0432\u00bb.\n\n\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0435 \u043a\u043e\u043c\u0430\u043d\u0434\u044b:\n  --help                         \u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u044d\u0442\u0443 \u0441\u043f\u0440\u0430\u0432\u043a\u0443\n  --version                      \u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0432\u0435\u0440\u0441\u0438\u044e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f\n  --import <filepath> [mongodb-url]  \u0418\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c TSV-\u0444\u0430\u0439\u043b \u0432 MongoDB\n  --generate <n> <filepath> <url>  \u0421\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c TSV-\u0444\u0430\u0439\u043b';
 
 const printHelp = (): void => console.log(chalk.cyan(HELP_TEXT));
 
@@ -118,32 +118,6 @@ const generateOffers = async (countValue: string, filePath: string, url: string)
   console.log(chalk.green(`Generated ${count} offers in ${resolve(filePath)}`));
 };
 
-const writeOutput = async (text: string): Promise<void> => {
-  if (!process.stdout.write(text)) {
-    await once(process.stdout, 'drain');
-  }
-};
-
-const importOffers = async (filePath: string): Promise<void> => {
-  const input = createReadStream(filePath, { encoding: 'utf8' });
-  const lines = createInterface({ input, crlfDelay: Infinity });
-  let count = 0;
-  try {
-    for await (const rawLine of lines) {
-      if (!rawLine) {
-        continue;
-      }
-      const line = count === 0 ? rawLine.replace(/^\uFEFF/, '') : rawLine;
-      await writeOutput(`${chalk.gray(`Offer ${count + 1}:`)}\n${line.split('\t').join('\n')}\n`);
-      count += 1;
-    }
-    await writeOutput(chalk.green(`Imported offers: ${count}\n`));
-  } finally {
-    lines.close();
-    input.destroy();
-  }
-};
-
 const run = async (args: string[]): Promise<void> => {
   const [command, ...parameters] = args;
   try {
@@ -157,9 +131,14 @@ const run = async (args: string[]): Promise<void> => {
         break;
       case '--import':
         if (!parameters[0]) {
-          throw new Error('Usage: --import <filepath>');
+          throw new Error('Usage: --import <filepath> [mongodb-url]');
         }
-        await importOffers(resolve(parameters[0]));
+        {
+          const config = container.get<ConfigService>(TYPES.Config);
+          const importer = container.get<OfferImportService>(TYPES.OfferImportService);
+          const count = await importer.import(resolve(parameters[0]), parameters[1] ?? config.get('databaseUrl'));
+          console.log(chalk.green(`Imported offers: ${count}`));
+        }
         break;
       case '--generate':
         await generateOffers(parameters[0], parameters[1], parameters[2]);

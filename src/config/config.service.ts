@@ -16,6 +16,7 @@ convict.addFormat({
 export interface AppConfig {
   port: number;
   databaseHost: string;
+  databaseUrl: string;
   salt: string;
 }
 
@@ -31,6 +32,12 @@ const configSchema: convict.Schema<AppConfig> = {
     format: 'ipaddress',
     default: null,
     env: 'DB_HOST',
+  },
+  databaseUrl: {
+    doc: 'MongoDB connection URL',
+    format: String,
+    default: 'mongodb://admin:test@127.0.0.1:27017/six-cities?authSource=admin',
+    env: 'MONGO_URL',
   },
   salt: {
     doc: 'Random string used as a salt',

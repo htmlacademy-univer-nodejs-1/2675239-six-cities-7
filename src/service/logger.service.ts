@@ -12,4 +12,12 @@ export class LoggerService {
     }
     this.logger.info(message);
   }
+
+  public error(message: string, context?: Record<string, unknown>): void {
+    if (context) {
+      this.logger.error(context, message);
+      return;
+    }
+    this.logger.error(message);
+  }
 }
