@@ -1,5 +1,9 @@
 #!/usr/bin/env node
+import 'reflect-metadata';
 import axios from 'axios';
+import { Application } from './application.js';
+import { container } from './container.js';
+import { TYPES } from './const/tokens.js';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { once } from 'node:events';
@@ -173,5 +177,7 @@ const run = async (args: string[]): Promise<void> => {
 };
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  const application = container.get<Application>(TYPES.Application);
+  application.init();
   await run(process.argv.slice(2));
 }
