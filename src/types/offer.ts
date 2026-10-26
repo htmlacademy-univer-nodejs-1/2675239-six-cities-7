@@ -26,3 +26,5 @@ export interface Offer {
   goods: Goods[];
   author: User;
 }
+
+export type OfferSeed = Offer;

@@ -83,3 +83,20 @@ npm start
 ### Остальное
 
 Все остальные файлы в проекте являются служебными. Пожалуйста, не удаляйте и не изменяйте их самовольно. Только если того требует задание или наставник.
+
+#### Start the mock REST API
+
+Run the local JSON-server with the offer templates from `mocks/mock-server-data.json`:
+
+```bash
+npm run mock:server
+```
+
+The service exposes the templates at `http://localhost:3000/offers`. In another terminal, generate an arbitrary number of TSV offers and import them:
+
+```bash
+node dist/main.js --generate 100 mocks/generated-100.tsv http://localhost:3000/offers
+node dist/main.js --import mocks/generated-100.tsv
+```
+
+Files named `mocks/generated*.tsv` are ignored by Git.
