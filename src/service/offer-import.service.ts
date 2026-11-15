@@ -60,7 +60,7 @@ export class OfferImportService {
           guests: Number(guests),
           price: Number(price),
           goods: (goods ? goods.split(',') : []) as Goods[],
-          author: user._id,
+          author: user._id.toString(),
         });
         count += 1;
       }

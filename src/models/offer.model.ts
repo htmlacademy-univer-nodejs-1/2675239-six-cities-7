@@ -1,5 +1,5 @@
 import mongoose, { type HydratedDocument, type Model } from 'mongoose';
-import type { City, Goods, OfferType } from '../types/offer.js';
+import type { City, Goods, Location, OfferType } from '../types/offer.js';
 
 const { model, models, Schema } = mongoose;
 
@@ -8,6 +8,7 @@ export interface OfferEntity {
   description: string;
   publicationDate: Date;
   city: City;
+  location: Location;
   previewImage: string;
   images: string[];
   isPremium: boolean;
@@ -17,6 +18,8 @@ export interface OfferEntity {
   price: number;
   goods: Goods[];
   author: mongoose.Types.ObjectId;
+  commentsCount: number;
+  rating: number;
 }
 
 export type OfferDocument = HydratedDocument<OfferEntity>;
@@ -26,6 +29,10 @@ const offerSchema = new Schema<OfferEntity>({
   description: { type: String, required: true },
   publicationDate: { type: Date, required: true },
   city: { type: String, required: true },
+  location: {
+    latitude: { type: Number },
+    longitude: { type: Number },
+  },
   previewImage: { type: String, required: true },
   images: [{ type: String }],
   isPremium: { type: Boolean, required: true },
@@ -35,6 +42,8 @@ const offerSchema = new Schema<OfferEntity>({
   price: { type: Number, required: true },
   goods: [{ type: String }],
   author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  commentsCount: { type: Number, default: 0 },
+  rating: { type: Number, default: 0 },
 }, { timestamps: true, collection: 'offers' });
 
 export const OfferModel = models.Offer as Model<OfferEntity> | undefined

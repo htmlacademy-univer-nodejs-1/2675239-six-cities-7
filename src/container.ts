@@ -7,6 +7,7 @@ import { LoggerService } from './service/logger.service.js';
 import { DatabaseService } from './service/database.service.js';
 import { UserService } from './service/user.service.js';
 import { OfferService } from './service/offer.service.js';
+import { CommentService } from './service/comment.service.js';
 import { OfferImportService } from './service/offer-import.service.js';
 
 const container = new Container();
@@ -17,6 +18,7 @@ container.bind<ConfigService>(TYPES.Config).to(ConfigService).inSingletonScope()
 container.bind<DatabaseService>(TYPES.Database).to(DatabaseService).inSingletonScope();
 container.bind<UserService>(TYPES.UserService).to(UserService).inSingletonScope();
 container.bind<OfferService>(TYPES.OfferService).to(OfferService).inSingletonScope();
+container.bind<CommentService>(TYPES.CommentService).to(CommentService).inSingletonScope();
 container.bind<OfferImportService>(TYPES.OfferImportService).to(OfferImportService).inSingletonScope();
 
 export { container };
